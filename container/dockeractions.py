@@ -1,21 +1,4 @@
 import docker, json
-
-def criar_container(imagem, nome=None, portas=None, comandos=None):
-    client = docker.from_env()
-    container = client.containers.run(
-        image=imagem,
-        name=nome,
-        ports=portas,
-        command=comandos,
-        detach=True  # Executa em background
-    )
-    return {
-        'id': container.id,
-        'nome': container.name,
-        'imagem': container.image.tags,
-        'status': container.status,
-        'ports': container.ports,
-    }
     
 def formatar_portas(ports):
     """
@@ -46,14 +29,35 @@ def listar_containers_ativos():
     return info
 
 # Create your views here.
-def create_docker_container(max):
-    for i in range(int(max) + 1):
-        imagem = "nginx"  # Default image, can be changed
-        nome = "teste-container-manager-" + str(i)
-        portas = {'80/tcp': 8180 + i}
+def create_docker_container(max, container_type, name_prefix, container_port, configs):
+    for i in range(1, int(max) + 1):
+        imagem = container_type  # Default image, can be changed
+        nome = name_prefix + "-" + str(i)
+        portas = {f"{container_port}": 8180 + i}
         print(f"Creating container {nome} with image {imagem} and ports {portas}")
         # Create the Docker container
-        criar_container(imagem, nome, portas)
+        client = docker.from_env()
+        if container_type == 'mysql':
+            # For MySQL, we need to set environment variables
+            client.containers.run(
+                image=imagem,
+                name=nome,
+                ports=portas,
+                environment={
+                    'MYSQL_ROOT_PASSWORD': configs['modalInput3'],
+                    'MYSQL_DATABASE': configs['modalInput0'],
+                    'MYSQL_USER': configs['modalInput1'],
+                    'MYSQL_PASSWORD': configs['modalInput2']
+                },
+                detach=True  # Executa em background
+            )
+        else:
+            client.containers.run(
+                image=imagem,
+                name=nome,
+                ports=portas,
+                detach=True  # Executa em background
+            )
     return {'status': 'success', 'message': 'Containers criados com sucesso!'}
 
 def delete_docker_container(containers_id):

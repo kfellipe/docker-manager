@@ -85,3 +85,31 @@ class Consumer(AsyncWebsocketConsumer):
                     'message': 'Lista de containers atualizada.',
                     'containers': container.dockeractions.listar_containers_ativos()
                 }))
+                
+            elif data['action'] == 'create':
+                max_containers = data.get('count', 0)
+                container_type = data['container_type']
+                name_prefix = data.get('name_prefix', 'container')
+                container_port = data.get('port', 0)
+                configs = data.get('configs', {})
+                # print(f"Creating {max_containers} containers of type {container_type} with prefix {name_prefix} and port {container_port} and configs {configs}")
+                result = container.dockeractions.create_docker_container(max_containers, container_type, name_prefix, container_port, configs)
+                result_status = result['status']
+                result_message = result['message']
+                # time.sleep(2)
+                if result_status == 'success':
+                    await self.send(json.dumps({
+                        'type': 'action-result',
+                        'status': result_status,
+                        'message': result_message
+                    }))
+                    await self.send(json.dumps({
+                        'type': 'list-containers',
+                        'containers': container.dockeractions.listar_containers_ativos()
+                    }))
+                else:
+                    await self.send(json.dumps({
+                        'type': 'action-result',
+                        'status': result_status,
+                        'message': result_message
+                    }))

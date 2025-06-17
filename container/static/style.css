@@ -472,8 +472,14 @@
         }
 
         .container-type-icon {
+            height: 7rem;
             font-size: 2rem;
             margin-bottom: 0.5rem;
+        }
+
+        .container-type-icon img {
+            height: 100%;
+            object-fit: contain;
         }
 
         .container-type-name {

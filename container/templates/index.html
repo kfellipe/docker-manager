@@ -118,6 +118,8 @@
                                     class="form-input" 
                                     placeholder="Ex: container-banco-de-dados"
                                     maxlength="50"
+                                    name="name_prefix"
+                                    required
                                 >
                                 <small id="prefixPreview" style="display:block; margin-top:8px; color:#64748b; font-size:0.98em;"></small>
                             </div>
@@ -127,12 +129,13 @@
                                 </label>
                                 <input 
                                     type="number" 
-                                    id="containerCount" 
+                                    id="containerCountInput" 
                                     class="form-input" 
                                     min="1" 
                                     max="50" 
                                     value="1" 
                                     placeholder="Digite a quantidade (1-50)"
+                                    name="container_count"
                                     required
                                 >
                             </div>
@@ -142,50 +145,20 @@
                                     🐳 Tipo de Container
                                 </label>
                                 <div class="container-types">
-                                    <div class="container-type" data-type="nginx">
-                                        <div class="container-type-icon">🌐</div>
-                                        <div class="container-type-name">Web Server</div>
-                                        <div class="container-type-desc">Nginx</div>
-                                    </div>
-                                    <div class="container-type" data-type="mysql">
-                                        <div class="container-type-icon">🗄️</div>
+                                    <div class="container-type" data-type="mysql" data-port="3306">
+                                        <img src="{% static 'images/mysql.png' %}" alt="MySQL" class="container-type-icon">
                                         <div class="container-type-name">MySQL</div>
-                                        <div class="container-type-desc">Database</div>
-                                    </div>
-                                    <div class="container-type" data-type="postgres">
-                                        <div class="container-type-icon">🐘</div>
-                                        <div class="container-type-name">PostgreSQL</div>
-                                        <div class="container-type-desc">Database</div>
-                                    </div>
-                                    <div class="container-type" data-type="redis">
-                                        <div class="container-type-icon">⚡</div>
-                                        <div class="container-type-name">Redis</div>
-                                        <div class="container-type-desc">Cache</div>
-                                    </div>
-                                    <div class="container-type" data-type="ssh">
-                                        <div class="container-type-icon">🔐</div>
-                                        <div class="container-type-name">SSH Server</div>
-                                        <div class="container-type-desc">OpenSSH</div>
-                                    </div>
-                                    <div class="container-type" data-type="node">
-                                        <div class="container-type-icon">💚</div>
-                                        <div class="container-type-name">Node.js</div>
-                                        <div class="container-type-desc">Runtime</div>
-                                    </div>
-                                    <div class="container-type" data-type="python">
-                                        <div class="container-type-icon">🐍</div>
-                                        <div class="container-type-name">Python</div>
-                                        <div class="container-type-desc">Runtime</div>
-                                    </div>
-                                    <div class="container-type" data-type="apache">
-                                        <div class="container-type-icon">🪶</div>
-                                        <div class="container-type-name">Apache</div>
-                                        <div class="container-type-desc">Web Server</div>
+                                        <div class="contaner-type-desc">Use a senha <strong>root</strong> para acessar</div>
+                                        </div>
+                                        <div class="container-type" data-type="nginx" data-port="80">
+                                            <img src="{% static 'images/mysql.png' %}" alt="MySQL" class="container-type-icon">
+                                            <div class="container-type-name">Nginx</div>
+                                            <div class="contaner-type-desc">Servidor web leve e rápido</div>
+                                        </div>
                                     </div>
                                 </div>
+                                </div>
                             </div>
-
-
                             <div class="form-actions">
                                 <button type="button" class="btn btn-secondary" onclick="resetForm()">
                                     🔄 Limpar
@@ -217,6 +190,20 @@
             <button id="confirmModalNo" class="btn btn-secondary" style="min-width:100px;">Cancelar</button>
         </div>
     </div>
+    <!-- Modal de Formulário -->
+    <div id="formModal"
+         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:white; padding:2rem; border-radius:8px; max-width:90vw; min-width:300px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+            <form id="modalForm">
+                <h2 id="formModalTitle" style="margin-bottom:1.5rem; color:#1e293b; font-size:1.2rem;">Título do Formulário</h2>
+                <!-- Campos dinâmicos aqui -->
+                <div style="margin-top:2rem;">
+                    <button type="submit" class="btn btn-primary" style="min-width:100px; margin-right:1rem;">Salvar</button>
+                    <button type="button" class="btn btn-secondary" style="min-width:100px;" onclick="closeFormModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="toastContainer" style="position:fixed; bottom:24px; left:24px; z-index:10000; display:flex; flex-direction:column; gap:12px;"></div>
     <div id="blockOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(30,41,59,0.4); z-index:10000; align-items:center; justify-content:center;">
         <div style="color:#fff; font-size:1.2rem; text-align:center;">
@@ -225,5 +212,7 @@
     </div>
     <script src="{% static 'js/theme.js' %}"></script>
     <script src="{% static 'js/script.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/create-container.js' %}"></script>
 </body>
 </html>

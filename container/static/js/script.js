@@ -85,14 +85,20 @@ function connectWebSocket() {
         data = JSON.parse(event.data);
         // console.log('Mensagem recebida: ', data);
         if (data['type'] == 'list-containers'){
+            closeFormModal(); // Fecha o modal de criação de container, se aberto
+            closeConfirmModal(); // Fecha o modal de confirmação, se aberto
             updateContainerList(data['containers']);
         }
         // Exemplo de tratamento de resposta:
         if (data.type === 'action-result') {
+            closeFormModal(); // Fecha o modal de criação de container, se aberto
+            closeConfirmModal(); // Fecha o modal de confirmação, se aberto
             hideBlockOverlay();
             if (data.status === 'success') {
+                showPage('dashboard'); // Volta para o dashboard após ação
                 showToast(data.message, 'success');
             } else {
+                showPage('dashboard'); // Volta para o dashboard após ação
                 showToast(data.message, 'error');
             }
             // setBulkButtonsDisabled(false); // Reativa os botões
@@ -109,316 +115,9 @@ function connectWebSocket() {
 // Conectar ao carregar a página
 connectWebSocket();
 
-
-// Container Selection Management
-function getSelectedContainers() {
-    const checkboxes = document.querySelectorAll('.container-checkbox[data-container-id]');
-    const selected = [];
-    
-    checkboxes.forEach(checkbox => {
-        if (checkbox.checked) {
-            selected.push(checkbox.dataset.containerId);
-        }
-    });
-    
-    return selected;
-}
-
-function updateSelection() {
-    const selectedContainers = getSelectedContainers();
-    const selectedCount = selectedContainers.length;
-    
-    // Update selection count
-    document.getElementById('selectedCount').textContent = selectedCount;
-    
-    // Enable/disable bulk action buttons
-    const bulkButtons = document.querySelectorAll('.bulk-btn');
-    bulkButtons.forEach(btn => {
-        btn.disabled = selectedCount === 0;
-    });
-    
-    // Update select all checkbox
-    const allCheckboxes = document.querySelectorAll('.container-checkbox[data-container-id]');
-    const selectAllCheckbox = document.getElementById('selectAll');
-    
-    if (selectedCount === 0) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = false;
-    } else if (selectedCount === allCheckboxes.length) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = true;
-    } else {
-        selectAllCheckbox.indeterminate = true;
-    }
-    
-    // Update row highlighting
-    allCheckboxes.forEach(checkbox => {
-        const row = checkbox.closest('tr');
-        if (checkbox.checked) {
-            row.classList.add('selected');
-        } else {
-            row.classList.remove('selected');
-        }
-    });
-}
-
-function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const containerCheckboxes = document.querySelectorAll('.container-checkbox[data-container-id]');
-    
-    containerCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-    
-    updateSelection();
-}
-
-// Bulk Actions
-function bulkStartContainers() {
-    const selectedContainers = getSelectedContainers();
-    if (selectedContainers.length === 0) {
-        alert('Selecione pelo menos um container!');
-        return;
-    }
-    showConfirmModal("Tem certeza que deseja iniciar os containers selecionados?", function () {
-        showBlockOverlay("Iniciando containers selecionados...");
-        ws.send(JSON.stringify({
-            type: 'action',
-            action: 'start',
-            containers: selectedContainers
-        }));
-        showToast('Iniciando containers...', 'info');
-        clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
-        // console.log('Iniciando containers:', selectedContainers);
-
-    })
-
-}
-
-function bulkStopContainers() {
-    const selectedContainers = getSelectedContainers();
-    if (selectedContainers.length === 0) {
-        showToast('Selecione pelo menos um container!', 'error');
-        return;
-    }
-    showConfirmModal("Tem certeza que deseja parar os containers selecionados?", function () {
-        showBlockOverlay("Parando containers selecionados...");
-        ws.send(JSON.stringify({
-            type: 'action',
-            action: 'stop',
-            containers: selectedContainers
-        }));
-        showToast('Parando containers...', 'info');
-        clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
-        // console.log('Parando containers:', selectedContainers);
-    });
-}
-
-function bulkRestartContainers() {
-    const selectedContainers = getSelectedContainers();
-    if (selectedContainers.length === 0) {
-        alert('Selecione pelo menos um container!');
-        return;
-    }
-    
-    showConfirmModal("Tem certeza que deseja reiniciar os containers selecionados?", function () {
-        showBlockOverlay("Parando containers selecionados...");
-        ws.send(JSON.stringify({
-            type: 'action',
-            action: 'restart',
-            containers: selectedContainers
-        }));
-        showToast('Parando containers...', 'info');
-        clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
-        // console.log('Parando containers:', selectedContainers);
-    });
-}
-
-function bulkDeleteContainers() {
-    const selectedContainers = getSelectedContainers();
-    if (selectedContainers.length === 0) {
-        showToast('Selecione pelo menos um container!', 'error');
-        return;
-    }
-
-    showConfirmModal("Tem certeza que deseja remover os containers selecionados?", function () {
-        showBlockOverlay("Parando containers selecionados...");
-        ws.send(JSON.stringify({
-            type: 'action',
-            action: 'delete',
-            containers: selectedContainers
-        }));
-        showToast('Parando containers...', 'info');
-        clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
-        // console.log('Parando containers:', selectedContainers);
-    });
-}
-
-function refreshContainers() {
-    showBlockOverlay("Atualizando lista de containers...");
-    ws.send(JSON.stringify({
-        type: 'action',
-        action: 'refresh'
-    }));
-    clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
-}
-
-// Container Type Selection
-const containerTypes = document.querySelectorAll('.container-type');
-let selectedType = null;
-
-containerTypes.forEach(type => {
-    type.addEventListener('click', () => {
-        // Remove selection from all types
-        containerTypes.forEach(t => t.classList.remove('selected'));
-        
-        // Add selection to clicked type
-        type.classList.add('selected');
-        selectedType = type.dataset.type;
-        
-        console.log('Selected container type:', selectedType);
-    });
-});
-
-// Form Submission
-const form = document.getElementById('createContainersForm');
-const createBtn = document.getElementById('createBtn');
-const progressContainer = document.getElementById('progressContainer');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const containerPrefixInput = document.getElementById('containerPrefix');
-const containerCountInput = document.getElementById('containerCount');
-const prefixPreview = document.getElementById('prefixPreview');
-
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const containerCount = document.getElementById('containerCount').value;
-    
-    if (!selectedType) {
-        alert('Por favor, selecione um tipo de container!');
-        return;
-    }
-
-    if (containerCount < 1 || containerCount > 50) {
-        alert('A quantidade deve estar entre 1 e 50 containers!');
-        return;
-    }
-
-    await createContainers(containerCount, selectedType);
-});
-
-async function createContainers(count, type) {
-    // Disable form
-    createBtn.disabled = true;
-    createBtn.innerHTML = '⏳ Criando...';
-    progressContainer.style.display = 'block';
-
-    const containerConfigs = {
-        nginx: { image: 'nginx:latest', ports: '80' },
-        mysql: { image: 'mysql:8.0', ports: '3306' },
-        postgres: { image: 'postgres:13', ports: '5432' },
-        redis: { image: 'redis:alpine', ports: '6379' },
-        ssh: { image: 'linuxserver/openssh-server', ports: '2222' },
-        node: { image: 'node:16-alpine', ports: '3000' },
-        python: { image: 'python:3.9-slim', ports: '8000' },
-        apache: { image: 'httpd:latest', ports: '80' }
-    };
-
-    const config = containerConfigs[type];
-    
-    try {
-        const containerIds = [];
-        
-        for (let i = 1; i <= count; i++) {
-            // Simulate container creation
-            const progress = (i / count) * 100;
-            progressFill.style.width = `${progress}%`;
-            progressText.textContent = `Criando container ${i} de ${count}...`;
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const containerId = `${type}-${Date.now()}-${i}`;
-            containerIds.push(containerId);
-            
-            console.log(`Container ${i} criado:`, {
-                id: containerId,
-                name: `${type}-${i}`,
-                image: config.image,
-                ports: config.ports
-            });
-        }
-
-        // Success
-        progressText.textContent = `✅ ${count} containers criados com sucesso!`;
-        progressFill.style.backgroundColor = 'var(--success-color)';
-        
-        console.log('IDs dos containers criados:', containerIds);
-        
-        setTimeout(() => {
-            alert(`${count} containers do tipo "${type}" foram criados com sucesso!\n\nIDs: ${containerIds.join(', ')}`);
-            resetForm();
-            showPage('dashboard'); // Redirect to dashboard after creation
-        }, 1000);
-
-    } catch (error) {
-        console.error('Erro ao criar containers:', error);
-        progressText.textContent = '❌ Erro ao criar containers';
-        progressFill.style.backgroundColor = 'var(--danger-color)';
-        alert('Erro ao criar containers. Tente novamente.');
-    } finally {
-        // Re-enable form
-        setTimeout(() => {
-            createBtn.disabled = false;
-            createBtn.innerHTML = '🚀 Criar Containers';
-            progressContainer.style.display = 'none';
-            progressFill.style.backgroundColor = 'var(--accent-color)';
-            progressFill.style.width = '0%';
-        }, 2000);
-    }
-}
-
-function resetForm() {
-    document.getElementById('containerCount').value = '1';
-    containerTypes.forEach(t => t.classList.remove('selected'));
-    selectedType = null;
-    progressContainer.style.display = 'none';
-    progressFill.style.width = '0%';
-}
-
-// Input validation
-containerCountInput.addEventListener('input', (e) => {
-    const value = parseInt(e.target.value);
-    if (value > 50) {
-        e.target.value = 50;
-        alert('Máximo de 50 containers permitidos por vez!');
-    } else if (value < 1) {
-        e.target.value = 1;
-    }
-});
-
-function updatePrefixPreview() {
-    const prefix = containerPrefixInput.value.trim() || 'container';
-    let count = parseInt(containerCountInput.value) || 1;
-    count = Math.max(1, Math.min(count, 50));
-    let preview = [];
-    for (let i = 1; i <= Math.min(count, 3); i++) {
-        preview.push(`${prefix}-${i}`);
-    }
-    if (count > 3) preview.push('...');
-    prefixPreview.textContent = `Exemplo: ${preview.join(', ')}`;
-}
-
-containerPrefixInput.addEventListener('input', updatePrefixPreview);
-containerCountInput.addEventListener('input', updatePrefixPreview);
-
-// Chame ao carregar a página para inicializar
-updatePrefixPreview();
-
 // Initialize navigation and selection
 document.getElementById('dashboard-link').classList.add('active');
-updateSelection();
+// updateSelection();
 
 function showToast(message, type='success', duration=4000) {
     const toastContainer = document.getElementById('toastContainer');
@@ -468,13 +167,6 @@ function showConfirmModal(message, onConfirm) {
 
     yesBtn.addEventListener('click', onYes);
     noBtn.addEventListener('click', onNo);
-}
-
-function clearAllContainerCheckboxes() {
-    document.querySelectorAll('.container-checkbox[data-container-id]').forEach(cb => {
-        cb.checked = false;
-    });
-    updateSelection();
 }
 
 function showBlockOverlay(message = "Aguarde, processando ação...") {

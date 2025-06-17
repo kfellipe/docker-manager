@@ -10,10 +10,9 @@ def view_docker_containers(request):
     View to list all active Docker containers.
     """
     if request.method == 'GET':
-        containers = listar_containers_ativos()
         status = request.session.pop('status', None)
         message = request.session.pop('message', None)
-        return render(request, 'index.html', {'containers': containers, 'status': status, 'message': message})
+        return render(request, 'index.html', {'status': status, 'message': message})
     
     if request.method == 'POST':
         
