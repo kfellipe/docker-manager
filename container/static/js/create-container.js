@@ -42,26 +42,40 @@ form.addEventListener('submit', async (e) => {
 });
 
 function createContainers(count, selectedType) {
-    
     try {
-        fields = [
-            { label: 'Nome do Banco de Dados', type: 'text' },
-            { label: 'Usuário', type: 'text' },
-            { label: 'Senha', type: 'password' },
-            { label: 'Senha do root', type: 'password' }
-        ]
-        openFormModal("Configurações do MySQL", fields);
-        
-        // console.log(`Criando ${count} containers do tipo "${type}" com prefixo "${name_prefix}" e porta "${port}"...`);
-        // hideBlockOverlay('Criando containers...');
-        // showPage('dashboard');
-        // showToast('Criando containers...', 'info');
-        // createBtn.disabled = true;
-        // resetForm()
-
+        if (selectedType === 'mysql') {
+            // Abre o formModal para MySQL
+            const fields = [
+                { label: 'Nome do Banco de Dados', type: 'text' },
+                { label: 'Usuário', type: 'text' },
+                { label: 'Senha', type: 'password' },
+                { label: 'Senha do root', type: 'password' }
+            ];
+            openFormModal("Configurações do MySQL", fields);
+        } else if (selectedType === 'nginx') {
+            // Apenas confirmação para Nginx
+            showConfirmModal(
+                `Tem certeza que deseja criar ${count} container(s) do tipo Nginx?`,
+                function () {
+                    // Envie a ação via WebSocket ou sua lógica aqui
+                    const name_prefix = containerPrefixInput.value.trim() || 'container';
+                    const port = selectedPort;
+                    showBlockOverlay("Criando os containers selecionados...");
+                    ws.send(JSON.stringify({
+                        type: 'action',
+                        action: 'create',
+                        container_type: 'nginx',
+                        count: parseInt(count),
+                        name_prefix: name_prefix,
+                        port: port,
+                        configs: {} // Nginx não precisa de configs extras
+                    }));
+                    closeConfirmModal();
+                }
+            );
+        }
     } catch (error) {
         showToast('Erro ao criar containers: ' + error.message, 'error');
-
     }
 }
 
