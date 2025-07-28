@@ -69,7 +69,7 @@ function bulkStartContainers() {
         return;
     }
     showConfirmModal("Tem certeza que deseja iniciar os containers selecionados?", function () {
-        showBlockOverlay("Iniciando containers selecionados...");
+        showBlockOverlay("Iniciando containers selecionados...", true, selectedContainers.length);
         ws.send(JSON.stringify({
             type: 'action',
             action: 'start',
@@ -90,7 +90,7 @@ function bulkStopContainers() {
         return;
     }
     showConfirmModal("Tem certeza que deseja parar os containers selecionados?", function () {
-        showBlockOverlay("Parando containers selecionados...");
+        showBlockOverlay("Parando containers selecionados...", true, selectedContainers.length);
         ws.send(JSON.stringify({
             type: 'action',
             action: 'stop',
@@ -110,7 +110,7 @@ function bulkRestartContainers() {
     }
     
     showConfirmModal("Tem certeza que deseja reiniciar os containers selecionados?", function () {
-        showBlockOverlay("Reiniciando containers selecionados...");
+        showBlockOverlay("Reiniciando containers selecionados...", true, selectedContainers.length);
         ws.send(JSON.stringify({
             type: 'action',
             action: 'restart',
@@ -130,15 +130,34 @@ function bulkDeleteContainers() {
     }
 
     showConfirmModal("Tem certeza que deseja remover os containers selecionados?", function () {
-        showBlockOverlay("Parando containers selecionados...");
+        showBlockOverlay("Removendo containers selecionados...", true, selectedContainers.length);
         ws.send(JSON.stringify({
             type: 'action',
             action: 'delete',
             containers: selectedContainers
         }));
-        showToast('Parando containers...', 'info');
+        showToast('Removendo containers...', 'info');
         clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
         // console.log('Parando containers:', selectedContainers);
+    });
+}
+
+function bulkRenewIpContainers() {
+    const selectedContainers = getSelectedContainers();
+    if (selectedContainers.length === 0) {
+        showToast('Selecione pelo menos um container!', 'error');
+        return;
+    }
+
+    showConfirmModal("Tem certeza que deseja renovar o IP dos containers selecionados?", function () {
+        showBlockOverlay("Renovando IPs dos containers selecionados...", true, selectedContainers.length);
+        ws.send(JSON.stringify({
+            type: 'action',
+            action: 'renew_ip',
+            containers: selectedContainers
+        }));
+        showToast('Renovando IPs dos containers...', 'info');
+        clearAllContainerCheckboxes(); // Limpa a seleção após enviar a ação
     });
 }
 
@@ -157,5 +176,17 @@ function clearAllContainerCheckboxes() {
     });
     updateSelection();
 }
+
+function resetSingleForm() {
+    document.getElementById('singleContainerName').value = '';
+    document.getElementById('singleContainerNumber').value = '1';
+    document.querySelectorAll('.single-type').forEach(t => t.classList.remove('selected'));
+}
+
+// Initialize navigation on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set dashboard as default active page
+    showPage('dashboard');
+});
 
 

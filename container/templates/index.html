@@ -17,7 +17,9 @@
                 </div>
                 <nav class="nav-links">
                     <a class="nav-link" id="dashboard-link" onclick="showPage('dashboard')">Dashboard</a>
-                    <a class="nav-link" id="create-link" onclick="showPage('create')">Criar Containers</a>
+                    <a class="nav-link" id="create-link" onclick="showPage('create')">Criar em Massa</a>
+                    <a class="nav-link" id="create-single-link" onclick="showPage('create-single')">Criar Individual</a>
+                    <a class="nav-link" onclick="startTutorial()" style="color: #10b981; font-weight: 600;">🎓 Tutorial</a>
                 </nav>
                 <button class="theme-toggle" id="themeToggle">
                     <span id="themeIcon">🌙</span>
@@ -72,6 +74,9 @@
                                 <button type="button" class="bulk-btn bulk-btn-restart" id="bulkRestartBtn" onclick="bulkRestartContainers()" disabled>
                                     🔄 Reiniciar
                                 </button>
+                                <button type="button" class="bulk-btn bulk-btn-renew-ip" id="bulkRenewIpBtn" onclick="bulkRenewIpContainers()" disabled>
+                                    🌐 Renovar IP
+                                </button>
                                 <button type="button" class="bulk-btn bulk-btn-delete" id="bulkDeleteBtn" onclick="bulkDeleteContainers()" disabled>
                                     🗑️ Remover
                                 </button>
@@ -88,6 +93,8 @@
                                     <th>Image</th>
                                     <th>Status</th>
                                     <th>Portas</th>
+                                    <th>Endereço</th>
+                                    <th>Configurações do VsCode</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -115,7 +122,7 @@
                                 <input 
                                     type="text" 
                                     id="containerPrefix" 
-                                    class="form-input" 
+                                    class="form-input containerPrefixInput" 
                                     placeholder="Ex: container-banco-de-dados"
                                     maxlength="50"
                                     name="name_prefix"
@@ -145,18 +152,24 @@
                                     🐳 Tipo de Container
                                 </label>
                                 <div class="container-types">
-                                    <div class="container-type" data-type="mysql" data-port="3306">
-                                        <img src="{% static 'images/mysql.png' %}" alt="MySQL" class="container-type-icon">
-                                        <div class="container-type-name">MySQL</div>
-                                        <div class="contaner-type-desc">Use a senha <strong>root</strong> para acessar</div>
-                                        </div>
-                                        <div class="container-type" data-type="nginx" data-port="80">
-                                            <img src="{% static 'images/mysql.png' %}" alt="MySQL" class="container-type-icon">
-                                            <div class="container-type-name">Nginx</div>
-                                            <div class="contaner-type-desc">Servidor web leve e rápido</div>
+                                        <div class="container-type" data-type="lamp" data-port="80,3306,22">
+                                            <img src="{% static 'images/lamp.png' %}" alt="LAMP" class="container-type-icon">
+                                            <div class="container-type-name">XAMP</div>
+                                            <div class="contaner-type-desc">Container com serviços Apache2, MySQL(8.0.42) e PHP(7.4)<br>
+                                            As credenciais de acesso do MySQL são:<br> <strong>Usuário</strong>: admin<br>
+                                        <strong>Senha</strong>: senaiead</div>
                                         </div>
                                     </div>
                                 </div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-container" id="createProgressContainer">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="createProgressFill"></div>
+                                </div>
+                                <div class="progress-text" id="createProgressText">
+                                    Criando containers...
                                 </div>
                             </div>
                             <div class="form-actions">
@@ -167,14 +180,81 @@
                                     🚀 Criar Containers
                                 </button>
                             </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
 
-                            <div class="progress-container" id="progressContainer">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="progressFill"></div>
+            <!-- Create Single Container Page -->
+            <section id="create-single-page" class="page-section">
+                <div class="create-container">
+                    <div class="page-header">
+                        <h1 class="page-title">Criar Container Individual</h1>
+                        <p class="page-subtitle">Configure e crie um container específico</p>
+                    </div>
+
+                    <div class="form-card">
+                        <form id="createSingleContainerForm">
+                            <div class="form-group">
+                                <label for="singleContainerName" class="form-label">
+                                    🏷️ Nome do Container
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="singleContainerName" 
+                                    class="form-input" 
+                                    placeholder="Ex: meu-container-web"
+                                    maxlength="50"
+                                    name="container_name"
+                                    required
+                                >
+                                <small style="display:block; margin-top:8px; color:#64748b; font-size:0.98em;">
+                                    Digite um nome único para o container
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="singleContainerNumber" class="form-label">
+                                    🔢 Número do Container
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="singleContainerNumber" 
+                                    class="form-input" 
+                                    min="1" 
+                                    max="99" 
+                                    value="1" 
+                                    placeholder="Digite o número (1-99)"
+                                    name="container_number"
+                                    required
+                                >
+                                <small style="display:block; margin-top:8px; color:#64748b; font-size:0.98em;">
+                                    Número será usado para criar o novo container
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    🐳 Tipo de Container
+                                </label>
+                                <div class="container-types">
+                                    <div class="container-type single-type" data-type="lamp" data-port="80,3306,22">
+                                        <img src="{% static 'images/lamp.png' %}" alt="LAMP" class="container-type-icon">
+                                        <div class="container-type-name">XAMP</div>
+                                        <div class="contaner-type-desc">Container com serviços Apache2, MySQL(8.0.42) e PHP(7.4)<br>
+                                            As credenciais de acesso do MySQL são:<br> <strong>Usuário</strong>: admin<br>
+                                        <strong>Senha</strong>: senaiead</div>
+                                    </div>
                                 </div>
-                                <div class="progress-text" id="progressText">
-                                    Criando containers...
-                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="resetSingleForm()">
+                                    🔄 Limpar
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="createSingleBtn">
+                                    🚀 Criar Container
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -204,15 +284,26 @@
             </form>
         </div>
     </div>
-    <div id="toastContainer" style="position:fixed; bottom:24px; left:24px; z-index:10000; display:flex; flex-direction:column; gap:12px;"></div>
+    <div id="toastContainer" style="position:fixed; bottom:24px; left:24px; z-index:10001; display:flex; flex-direction:column; gap:12px;"></div>
     <div id="blockOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(30,41,59,0.4); z-index:10000; align-items:center; justify-content:center;">
-        <div style="color:#fff; font-size:1.2rem; text-align:center;">
-            Aguarde, processando ação...
+        <div class="progress-overlay">
+            <div id="overlayMessage" class="progress-message">
+                Aguarde, processando ação...
+            </div>
+            <div id="progressContainer" class="progress-container" style="display:none;">
+                <div class="progress-bar-bg">
+                    <div id="progressBar" class="progress-bar-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">
+                    0 de 0 containers processados
+                </div>
+            </div>
         </div>
     </div>
     <script src="{% static 'js/theme.js' %}"></script>
     <script src="{% static 'js/script.js' %}"></script>
     <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/create-container.js' %}"></script>
+    <script src="{% static 'js/create-single-container.js' %}"></script>
 </body>
 </html>
