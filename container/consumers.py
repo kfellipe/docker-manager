@@ -2,12 +2,9 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import json, time
 import logging
 import container.dockeractions # Módulo com funções de gerenciamento de containers
-import container.guacamoleactions # Módulo com funções de gerenciamento de usuários Guacamole
 
 # Configuração de logging
 logger = logging.getLogger('container.consumers')
-
-guacamolemgr = container.guacamoleactions.UserManager(debug=True) # Instância do gerenciador de usuários Guacamole
 
 DEBUG = False  # Altere para False para desabilitar prints de debug
 
@@ -155,51 +152,27 @@ class Consumer(AsyncWebsocketConsumer):
                 total_count = len(data['containers'])
                 
                 for id in data['containers']:
-                    container_success = True
-                    guacamole_success = True
-                    
                     # Deleta o container
                     result_container = container.dockeractions.delete_container(id)
-                    if result_container['status'] != 'success':
-                        container_success = False
+                    if result_container['status'] == 'success':
+                        success_count += 1
+                        await self.send(json.dumps({
+                            'type': 'action-progress',
+                            'status': 'success',
+                            'message': f"Container {result_container['container_name']} deletado com sucesso."
+                        }))
+                    else:
+                        error_count += 1
                         await self.send(json.dumps({
                             'type': 'action-progress',
                             'status': 'error',
                             'message': f"Erro ao deletar container {result_container['container_name']}: {result_container['message']}"
                         }))
                     
-                    # Se o container foi deletado com sucesso, remove o usuario do guacamole
-                    if container_success:
-                        result_guacamole_user = guacamolemgr.remover_usuario(result_container['container_name'])
-                        if result_guacamole_user['status'] != 'success':
-                            guacamole_success = False
-                            await self.send(json.dumps({
-                                'type': 'action-progress',
-                                'status': 'warning',
-                                'message': f"Container {result_container['container_name']} deletado, mas erro ao remover usuário do guacamole: {result_guacamole_user['message']}"
-                            }))
-                    
-                    # Determina o resultado final para este container
-                    if container_success and guacamole_success:
-                        success_count += 1
-                        await self.send(json.dumps({
-                            'type': 'action-progress',
-                            'status': 'success',
-                            'message': f"Container e conexão via guacamole (ambos {result_container['container_name']}) deletados com sucesso."
-                        }))
-                    elif container_success and not guacamole_success:
-                        # Container deletado, mas erro no guacamole - contamos como sucesso parcial
-                        success_count += 1
-                    else:
-                        error_count += 1
-                    
                     debug_print("enviando mensagem de progresso para o cliente")
                     # Pequeno delay para garantir que a mensagem seja processada
                     import asyncio
                     await asyncio.sleep(0.3)
-                    
-                # Salva o arquivo de usuarios do guacamole
-                guacamolemgr.save_xml()
                 
                 # Pequeno delay antes da mensagem final
                 import asyncio
@@ -355,13 +328,10 @@ class Consumer(AsyncWebsocketConsumer):
                 
                 for i in range(1, max_containers + 1):
                     container_name = f"{name_prefix}-{i:02d}"
-                    container_success = True
-                    guacamole_success = True
                     
                     # Verifica se o container ja existe
                     existing_containers = container.dockeractions.listar_containers_ativos()
                     if any(c['nome'] == container_name for c in existing_containers):
-                        container_success = False
                         await self.send(json.dumps({
                             'type': 'action-progress',
                             'status': 'warning',
@@ -373,7 +343,6 @@ class Consumer(AsyncWebsocketConsumer):
                     # Cria a interface macvlan para o container
                     ip = container.dockeractions.create_macvlan_interface(num_interface=i, base_name="macvlan", parent_interface="ens192")
                     if ip in ["Erro", "Sem IP"]:
-                        container_success = False
                         await self.send(json.dumps({
                             'type': 'action-progress',
                             'status': 'error',
@@ -381,6 +350,7 @@ class Consumer(AsyncWebsocketConsumer):
                         }))
                         container.dockeractions.delete_macvlan_interface(num_interface=i, base_name="macvlan", parent_interface="ens192")
                         error_count += 1
+                        continue
                     
                     # Cria o container Docker com a interface macvlan
                     if configs:
@@ -401,62 +371,24 @@ class Consumer(AsyncWebsocketConsumer):
                             ports=[container_port]
                         )
                     
-                    if result_container['status'] != 'success':
-                        container_success = False
+                    if result_container['status'] == 'success':
+                        success_count += 1
+                        await self.send(json.dumps({
+                            'type': 'action-progress',
+                            'status': 'success',
+                            'message': f"Container {container_name} criado com sucesso!"
+                        }))
+                    else:
+                        error_count += 1
                         await self.send(json.dumps({
                             'type': 'action-progress',
                             'status': 'error',
                             'message': f"Erro ao criar container {container_name}: {result_container['message']}"
                         }))
-                        error_count += 1
-                    
-                    # Cria o usuário no guacamole
-                    result_guacamole_user = guacamolemgr.criar_usuario(container_name, "senaiead")
-                    if result_guacamole_user['status'] != 'success':
-                        guacamole_success = False
-                        await self.send(json.dumps({
-                            'type': 'action-progress',
-                            'status': 'warning',
-                            'message': f"Container {container_name} criado, mas erro ao criar usuário no guacamole: {result_guacamole_user['message']}"
-                        }))
-                        # Não remove o container, mas marca como sucesso parcial
-                        success_count += 1
-                    else:
-                        # Adiciona a conexão no guacamole
-                        result_guacamole_conn = guacamolemgr.adicionar_conexao(
-                            container_name,
-                            f"Conexão SSH {container_name}",
-                            "ssh",
-                            params={
-                                'hostname': ip,
-                                'port': 22,
-                                'username': 'root',
-                                'password': 'senaiead'
-                            }
-                        )
-                        if result_guacamole_conn['status'] != 'success':
-                            guacamole_success = False
-                            await self.send(json.dumps({
-                                'type': 'action-progress',
-                                'status': 'warning',
-                                'message': f"Container {container_name} criado, mas erro ao adicionar conexão no guacamole: {result_guacamole_conn['message']}"
-                            }))
-                            success_count += 1
-                        else:
-                            # Tudo deu certo
-                            success_count += 1
-                            await self.send(json.dumps({
-                                'type': 'action-progress',
-                                'status': 'success',
-                                'message': f"Container e conexão via guacamole (ambos '{container_name}') criados com sucesso!"
-                            }))
                     
                     # Pequeno delay entre containers
                     import asyncio
                     await asyncio.sleep(0.3)
-                
-                # Salva o arquivo de usuarios do guacamole
-                guacamolemgr.save_xml()
                 
                 # Pequeno delay antes da mensagem final
                 import asyncio
@@ -534,7 +466,24 @@ class Consumer(AsyncWebsocketConsumer):
                         ports=[container_port]
                     )
                 
-                if result_container['status'] != 'success':
+                # Envia mensagem de progresso para a barra funcionar
+                if result_container['status'] == 'success':
+                    await self.send(json.dumps({
+                        'type': 'action-progress',
+                        'status': 'success',
+                        'message': f"Container {full_container_name} criado com sucesso!"
+                    }))
+                    
+                    # Pequeno delay antes da mensagem final
+                    import asyncio
+                    await asyncio.sleep(0.2)
+                    
+                    await self.send(json.dumps({
+                        'type': 'action-completed',
+                        'status': 'success',
+                        'message': f'Container {full_container_name} criado com sucesso!'
+                    }))
+                else:
                     await self.send(json.dumps({
                         'type': 'action-completed',
                         'status': 'error',
@@ -542,63 +491,10 @@ class Consumer(AsyncWebsocketConsumer):
                     }))
                     return
                 
-                # Cria o usuário no guacamole
-                result_guacamole_user = guacamolemgr.criar_usuario(full_container_name, "senaiead")
-                guacamole_success = True
-                if result_guacamole_user['status'] != 'success':
-                    guacamole_success = False
-                else:
-                    # Adiciona a conexão no guacamole
-                    result_guacamole_conn = guacamolemgr.adicionar_conexao(
-                        full_container_name,
-                        f"Conexão SSH {full_container_name}",
-                        "ssh",
-                        params={
-                            'hostname': ip,
-                            'port': 22,
-                            'username': 'root',
-                            'password': 'senaiead'
-                        }
-                    )
-                    if result_guacamole_conn['status'] != 'success':
-                        guacamole_success = False
-                
-                # Salva o arquivo de usuarios do guacamole
-                guacamolemgr.save_xml()
-                
-                # Envia mensagem de progresso para a barra funcionar
-                if guacamole_success:
-                    await self.send(json.dumps({
-                        'type': 'action-progress',
-                        'status': 'success',
-                        'message': f"Container e conexão via guacamole (ambos {full_container_name}) criados com sucesso!"
-                    }))
-                else:
-                    await self.send(json.dumps({
-                        'type': 'action-progress',
-                        'status': 'warning',
-                        'message': f"Container {full_container_name} criado, mas houve problemas com a integração do guacamole."
-                    }))
-                
-                # Pequeno delay antes da mensagem final
-                import asyncio
-                await asyncio.sleep(0.2)
-                
-                # Determina o status final
-                if guacamole_success:
-                    final_status = 'success'
-                    final_message = f'Container {full_container_name} criado com sucesso!'
-                else:
-                    final_status = 'warning'
-                    final_message = f'Container {full_container_name} criado, mas com problemas na integração do guacamole.'
-                
-                await self.send(json.dumps({
-                    'type': 'action-completed',
-                    'status': final_status,
-                    'message': final_message
-                }))
-                
                 await self.send(json.dumps({
                     'type': 'list-containers',
                     'containers': container.dockeractions.listar_containers_ativos()
                 }))
+
+    async def disconnect(self, close_code):
+        logger.info(f"Conexão WebSocket encerrada com código: {close_code}")

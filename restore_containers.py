@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# filepath: /root/Documents/docker-manager/restore_containers.py
 
 import json
 import docker
@@ -22,7 +21,6 @@ logger = logging.getLogger(__name__)
 # Importar funções do dockeractions
 sys.path.append('/root/Documents/docker-manager')
 from container.dockeractions import create_macvlan_interface, formatar_portas
-from container.guacamoleactions import UserManager
 
 def restore_containers():
     """
@@ -48,7 +46,6 @@ def restore_containers():
     
     # Conecta ao Docker
     client = docker.from_env()
-    guac_manager = UserManager()
     
     # Estatísticas
     total_containers = len(control_data)
@@ -139,24 +136,6 @@ def restore_containers():
             )
             
             logger.info(f"✅ Container {container_name} recriado com sucesso")
-            
-            # 7. Atualizar conexão do Guacamole
-            logger.info(f"🔗 Atualizando conexão Guacamole para {container_name}")
-            try:
-                result_guac = guac_manager.atualizar_conexao(
-                    username=container_name,
-                    conn_name='Conexão SSH ' + container_name,
-                    new_params={"hostname": new_ip}
-                )
-                
-                if result_guac['status'] == 'success':
-                    logger.info(f"✅ Conexão Guacamole atualizada para {container_name}")
-                else:
-                    logger.warning(f"⚠️ Erro ao atualizar Guacamole: {result_guac['message']}")
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Erro ao atualizar Guacamole para {container_name}: {e}")
-            
             success_count += 1
             logger.info(f"✅ Container {container_name} restaurado com sucesso!")
             
@@ -167,14 +146,7 @@ def restore_containers():
         # Pequena pausa entre containers
         time.sleep(2)
     
-    # 8. Salvar alterações do Guacamole
-    try:
-        guac_manager.save_xml()
-        logger.info("💾 Alterações do Guacamole salvas")
-    except Exception as e:
-        logger.error(f"❌ Erro ao salvar alterações do Guacamole: {e}")
-    
-    # 9. Resultado final
+    # 7. Resultado final
     logger.info(f"🏁 Restauração concluída:")
     logger.info(f"   ✅ Sucessos: {success_count}")
     logger.info(f"   ❌ Erros: {error_count}")
