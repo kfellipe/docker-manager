@@ -1,11 +1,8 @@
 import os, subprocess, sys, docker, time, re, json, shutil
-import logging, container.guacamoleactions
+import logging
 
 # Configuração de logging
 logger = logging.getLogger('container.dockeractions')
-
-# Objeto para gerenciar conexões do guacamole
-guacamolemgr = container.guacamoleactions.UserManager()
 
 DEBUG = True # Altere para False para desabilitar prints de debug
 
@@ -39,12 +36,8 @@ def listar_containers_ativos():
     client = docker.from_env()
     containers = client.containers.list(all=True)
     info = []
-    name_filter = ['guacamole', 'guacd', 'guacamoledb']
     logger.info(f"Encontrados {len(containers)} containers totais")
     for container in containers:
-        if container.name in name_filter:
-            debug_print(f"[DEBUG] Ignorando container: {container.name}")
-            continue
         
         # Log detalhado de cada container processado
         logger.info(f"Processando container: {container.name} (ID: {container.id[:12]}) - Status: {container.status}")
@@ -675,11 +668,6 @@ def renew_container_ip(container_id):
         logger.info(f"Container {container_name} criado com novo IP: {new_ip}")
         debug_print(f"\nContainer {container_name} criado com novo IP: {new_ip}")
     
-        # Atualiza a conexão do guacamole com o novo IP
-        result_guacamole = guacamolemgr.atualizar_conexao(container_name, f"Conexão SSH {container_name}", {"hostname": new_ip})
-        if result_guacamole['status'] == 'error':
-            logger.error(f"Erro ao atualizar conexão do Guacamole: {result_guacamole['message']}")
-            return {'status': 'error', 'message': f'Erro ao atualizar conexão do Guacamole: {result_guacamole["message"]}', 'container_name': container_name}
         return {"status": "success", "message": f"Container {container_name} atualizado com novo IP: {new_ip}", "container_name": container_name, "new_ip": new_ip}
 
     except docker.errors.NotFound:

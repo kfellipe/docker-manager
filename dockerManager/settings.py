@@ -175,11 +175,6 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'container.guacamoleactions': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
         'container.consumers': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
