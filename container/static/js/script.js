@@ -278,7 +278,10 @@ function updateContainerList(containers) {
 }
 
 function connectWebSocket() {
-    ws = new WebSocket('ws://192.168.17.195:8000/ws/docker');
+    // Usa o hostname atual ao invés de IP fixo
+    const currentHost = window.location.hostname;
+    const currentPort = window.location.port || '8000';
+    ws = new WebSocket(`ws://${currentHost}:${currentPort}/ws/docker`);
 
     ws.onopen = function() {
         console.log('WebSocket conectado');
