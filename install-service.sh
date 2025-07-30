@@ -5,7 +5,7 @@
 SERVICE_NAME="docker-manager"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 PROJECT_DIR="/root/Documents/docker-manager"
-LOG_FILE="/var/log/docker-manager.log"
+LOG_FILE="/var/log/docker-manager/docker-manager.log"
 
 echo "=== Instalação do Serviço Docker Manager ==="
 
@@ -17,7 +17,7 @@ fi
 
 # Cria o diretório de logs se não existir
 echo "Criando diretório de logs..."
-mkdir -p /var/log
+mkdir -p /var/log/docker-manager
 touch "$LOG_FILE"
 chmod 644 "$LOG_FILE"
 
@@ -46,15 +46,8 @@ echo "  systemctl stop $SERVICE_NAME      - Parar serviço"
 echo "  systemctl restart $SERVICE_NAME   - Reiniciar serviço"
 echo "  systemctl status $SERVICE_NAME    - Status do serviço"
 echo "  ${PROJECT_DIR}/monitor-logs.sh    - Monitorar logs"
-echo "  ${PROJECT_DIR}/test-logging.sh    - Testar sistema de logs"
 echo ""
 echo "Logs disponíveis em: $LOG_FILE"
-echo ""
-
-# Testa o sistema de logging
-echo "Testando sistema de logging..."
-${PROJECT_DIR}/test-logging.sh
-
 echo ""
 
 # Pergunta se deseja iniciar o serviço agora
