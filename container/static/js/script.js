@@ -1433,33 +1433,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Adiciona botão de teste de seletores (apenas para debug)
-    const testBtn = document.createElement('button');
-    testBtn.innerHTML = '🧪 Test';
-    testBtn.className = 'btn btn-secondary';
-    testBtn.style.cssText = `
-        position: fixed;
-        bottom: 92px;
-        right: 32px;
-        z-index: 100002;
-        background: #6b7280;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
-    `;
-    
-    testBtn.onclick = function() {
-        console.log('🧪 Iniciando teste completo de seletores...');
-        testAllTutorialSelectors();
-    };
-    
-    document.body.appendChild(testBtn);
     
     document.body.appendChild(btn);
     

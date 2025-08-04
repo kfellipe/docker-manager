@@ -1,1 +1,6 @@
-[]
+[
+    {
+        "container_name": "aluno-01",
+        "interface": "macvlan01"
+    }
+]

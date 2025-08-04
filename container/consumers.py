@@ -348,7 +348,7 @@ class Consumer(AsyncWebsocketConsumer):
                             'status': 'error',
                             'message': f"Erro ao criar interface macvlan para o container {container_name}."
                         }))
-                        container.dockeractions.delete_macvlan_interface(num_interface=i, base_name="macvlan", parent_interface="ens192")
+                        container.dockeractions.delete_macvlan_interface(container_name=f"{name_prefix}-{i:02d}")
                         error_count += 1
                         continue
                     
